@@ -1,5 +1,6 @@
 import os
 import hashlib
+from datetime import datetime
 
 
 class FileInfo:
@@ -40,10 +41,13 @@ class FileInfo:
 
     @property
     def data(self):
+        d = datetime.fromtimestamp(self.birth_time).isoformat()
         return {
             "file_path": self._file_path,
             "size": self.size,
             "birth_time": self.birth_time,
             "hash": self.hash,
             "name": self.basename,
+            'dateiso': d[:10],
+            'time': d[11:],
         }
