@@ -1,6 +1,5 @@
 # import the necessary packages
 from skimage.measure import structural_similarity as ssim
-import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 
@@ -25,7 +24,7 @@ def is_similar_by_mse(imageA, imageB):
 
 def is_similar_by_ssim(imageA, imageB):
     # mais similar quanto mais próximo de 1.0
-    ret = mse(imageA, imageB)
+    ret = ssim(imageA, imageB)
     return ret
 
 
@@ -33,7 +32,6 @@ def image(file_path):
     return cv2.imread(file_path)
 
 
-def gray_scale_image(file_path):
+def gray_scale_image(image):
     # convert the images to grayscale
-    original = image(file_path)
-    return cv2.cvtColor(original, cv2.COLOR_BGR2GRAY)
+    return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)

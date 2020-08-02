@@ -1,11 +1,16 @@
 import os
+import hashlib
 
 
 class FileInfo:
 
-    def __init__(self, file_info):
+    def __init__(self, file_path):
         self._file_path = file_path
         self._statinfo = os.stat(file_path)
+
+    @property
+    def basename(self):
+        return os.path.basename(self._file_path)
 
     @property
     def file_path(self):
@@ -28,4 +33,17 @@ class FileInfo:
         with open(self._file_path, 'rb') as fp:
             return fp.read()
 
+    @property
+    def hash(self):
+        m = hashlib.sha256(self.content)
+        return m.digest()
 
+    @property
+    def data(self):
+        return {
+            "file_path": self._file_path,
+            "size": self.size,
+            "birth_time": self.birth_time,
+            "hash": self.hash,
+            "name": self.basename,
+        }
