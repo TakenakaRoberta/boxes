@@ -58,7 +58,7 @@ def get_data(fileinfo):
     }
 
 
-def write(csv_file_path, files):
+def write(csv_file_path, file_info_items):
     fieldnames = ['type', 'hash', 'size', "first_time", 
                   "first_date",
                   "birth_date",
@@ -67,38 +67,48 @@ def write(csv_file_path, files):
                   "modification_date",
                   "name", "file_path",
                   ]
+    path = os.path.dirname(csv_file_path)
+    if not os.path.isdir(path):
+        os.makedirs(path)
     img_csv_file_path = csv_file_path.replace(".csv", ".img.csv")
     vid_csv_file_path = csv_file_path.replace(".csv", ".vid.csv")
-    with open(csv_file_path, 'w', newline='') as csvfile:
+    oth_csv_file_path = csv_file_path.replace(".csv", ".other.csv")
+
+    with open(oth_csv_file_path, 'w', newline='') as oth_csvfile:
         with open(vid_csv_file_path, 'w', newline='') as vid_csvfile:
             with open(img_csv_file_path, 'w', newline='') as img_csvfile:
                 vid_writer = csv.DictWriter(vid_csvfile, fieldnames=fieldnames)
                 img_writer = csv.DictWriter(img_csvfile, fieldnames=fieldnames)
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                oth_writer = csv.DictWriter(oth_csvfile, fieldnames=fieldnames)
                 vid_writer.writeheader()
                 img_writer.writeheader()
-                writer.writeheader()
-                for data in files:
-                    print(data.get("file_path"))
-                    if data.get("type") == "image":
-                        img_writer.writerow(data)
-                    elif data.get("type") == "video":
-                        vid_writer.writerow(data)
+                oth_writer.writeheader()
+                for file_info in file_info_items:
+                    if file_info.get("type") == "image":
+                        img_writer.writerow(file_info)
+                    elif file_info.get("type") == "video":
+                        vid_writer.writerow(file_info)
                     else:
-                        writer.writerow(data)
+                        oth_writer.writerow(file_info)
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        'Classifica arquivos de uma dada pasta em imagens, vídeo e outros, '
+        'e gera um arquivo csv para cada tipo de arquivo com os dados de seus arquivos')
     parser.add_argument("source_dir", help="files source dir")
     parser.add_argument("csvfile", help="csv file")
     args = parser.parse_args()
 
     source_dir = args.source_dir
-    print(source_dir)
+    csvfile = args.csvfile
+
+    if not os.path.isdir(source_dir):
+        raise IOError("Pasta não encontrada: %s", source_dir)
+
     files = get_files(source_dir)
     classified = classify_files(files)
-    write(args.csvfile, classified)
+    write(csvfile, classified)
 
 
 if __name__ == '__main__':
