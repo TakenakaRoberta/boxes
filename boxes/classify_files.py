@@ -8,36 +8,10 @@ import json
 from PIL import Image
 
 from utils.files import FileInfo
+import classified_files_csv
 
 
-logging.basicConfig(level=logging.INFO)
-
-
-def new_filename(file_path, first_date, new_dirname):
-    basename = os.path.basename(file_path)
-    return "--".join([first_date, new_dirname, basename])
-    
-
-def convert_notalnum_to_under(word):
-    normalized = []
-    for c in word:
-        if c.isalnum():
-            normalized.append(c.upper())
-            continue
-        normalized.append("_")
-    return "".join(normalized)
-
-
-def get_words(normalized_word):
-    return [w for w in normalized_word.split("_") if w]
-
-
-def get_labels(words):
-    return [w for w in words if w.isalpha()]
-
-
-def new_dirname(words):
-    return "_".join(words)
+logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
 
 def get_files(path):
@@ -58,23 +32,30 @@ def classify_files(files):
     for i, file_path in enumerate(files):
         logging.info("Classifying: %i/%i: %s", i, total, file_path)
         fileinfo = FileInfo(file_path)
-        data = {"type": ""}
+        data = {}
+        data['labels'] = ""
+        data['new_dirname'] = ""
+        data['new_filename'] = ""
+        data['main_label'] = ""
+        data['type'] = ""
+        data['duplicated'] = ""
+
         try:
             Image.open(file_path)
         except Exception as e:
             ign, ext = os.path.splitext(file_path)
-            if ext.startswith(".mp"):
-                data = {"type": "video"}
+            ext = ext.lower()
+            if ext == ".mov" or ext.startswith(".mp"):
+                data["type"] = "video"
         else:
-            data = {"type": "image"}
+            data["type"] = "image"
         
         data.update(get_data(fileinfo))
-        normalized_file_path = convert_notalnum_to_under(file_path)
-        words = get_words(normalized_file_path)
-        data['labels'] = get_labels(words)
-        data['new_dirname'] = new_dirname(words)
-        data['new_filename'] = new_filename(file_path, data.get("first_date"), data['new_dirname'])
-
+        # normalized_file_path = convert_notalnum_to_under(file_path)
+        # words = get_words(normalized_file_path)
+        # data['labels'] = get_labels(words)
+        # data['new_dirname'] = new_dirname(words)
+        # data['new_filename'] = new_filename(file_path, data.get("first_date"), data['new_dirname'])
         classified.append(data)
     return classified
 
@@ -92,22 +73,17 @@ def get_data(fileinfo):
         "c_date": isoformat(fileinfo.c_time),
         "recent_access_date": isoformat(fileinfo.recent_access_time),
         "modification_date": isoformat(fileinfo.modification_time),
+        "birth_time": fileinfo.birth_time,
+        "c_time": fileinfo.c_time,
+        "recent_access_time": fileinfo.recent_access_time,
+        "modification_time": fileinfo.modification_time,
         "hash": fileinfo.hash,
         "name": fileinfo.basename,
     }
 
 
 def write(csv_file_path, file_info_items):
-    fieldnames = ['type', 'hash', 'size', "first_time", 
-                  "first_date",
-                  "birth_date",
-                  "c_date",
-                  "recent_access_date",
-                  "modification_date",
-                  "name", "file_path",
-                  "labels", "new_filename", "new_dirname",
-                  "main_label",
-                  ]
+    fieldnames = classified_files_csv.HEADER
     path = os.path.dirname(csv_file_path)
     if not os.path.isdir(path):
         os.makedirs(path)
@@ -127,9 +103,6 @@ def write(csv_file_path, file_info_items):
                 i = 0
                 for file_info in file_info_items:
                     i += 1
-                    file_info["main_label"] = file_info["labels"][0]
-                    file_info["labels"] = json.dumps(file_info["labels"])
-
                     if file_info.get("type") == "image":
                         img_writer.writerow(file_info)
                     elif file_info.get("type") == "video":
@@ -139,7 +112,6 @@ def write(csv_file_path, file_info_items):
                     if i % 100 == 0:
                         logging.info("Created %i items in CSV", i)
                 logging.info("Created %i items in CSV", i)
-    return labels
 
 
 def sorted_by_higher_score(names, scores):
@@ -151,29 +123,6 @@ def sorted_by_higher_score(names, scores):
     if len(labels) > 1:
         labels.remove("PHOTO")
     return labels
-
-
-def file_labels(file_info_items):
-    labels = {}
-    for file_info in file_info_items:
-        for label in file_info.get("labels"):
-            labels[label] = labels.get(label, 0)
-            labels[label] += 1
-
-    for file_info in file_info_items:
-        file_info["labels"] = sorted_by_higher_score(file_info["labels"])
-    return labels
-
-
-def write_labels(file_path, labels):
-    sorted_labels = sorted([(n, k) for k, n in labels.items()], reverse=True)
-    with open(file_path, "w") as fp:
-        fp.write(
-            "\n".join([
-                    "{},{}".format(k, n)
-                    for n, k in sorted_labels
-                ]))
-    logging.info("Created %s", file_path)
                 
 
 def main():
@@ -194,11 +143,15 @@ def main():
     if not os.path.isdir(path):
         os.makedirs(path)
 
+    logging.info("Get files")
     files = get_files(source_dir)
+    logging.info("Classify files")
     classified = classify_files(files)
-    labels = file_labels(classified)
-    write_labels(os.path.join(path, "labels.csv"), labels)
+    # labels = file_labels(classified)
+    # write_labels(os.path.join(path, "labels.csv"), labels)
+    logging.info("Write csv")
     write(csvfile, classified)
+    logging.info("-end-")
 
 
 if __name__ == '__main__':

@@ -21,20 +21,22 @@ def organize(file_path, dest_path):
 """
 
 def create_script_to_copy(file_path, dest_path):
-    dest_path = os.path.normpath(dest_path)
     mkdir = []
     copy = []
-    with open(file_path, 'r') as fp:
-        for item in fp.read().splitlines():
-            if "\t" in item:
-                src, dst = item.split("\t")
-                dst_file_path = os.path.join(dest_path, dst)
-                dirname = os.path.dirname(dst_file_path)
-                if not os.path.isdir(dirname):
-                    mkdir.append('mkdir -p "{}"'.format(dirname))
-                if not os.path.isfile(dst_file_path):
-                    copy.append('cp "{}" "{}"'.format(src, dst_file_path))
-    with open(file_path + ".sh", "w") as fp:
+    dest_path = os.path.normpath(dest_path)
+    with open(file_path, 'r', newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for data in reader:
+            src = data["source"]
+            dst = data["destination"]
+            dst_file_path = os.path.join(dest_path, dst)
+            dirname = os.path.dirname(dst_file_path)
+            if not os.path.isdir(dirname):
+                mkdir.append('mkdir -p "{}"'.format(dirname))
+            if not os.path.isfile(dst_file_path):
+                copy.append('cp "{}" "{}"'.format(src, dst_file_path))
+    script = os.path.join(os.path.dirname(file_path), "organize.sh")
+    with open(script, "w") as fp:
         fp.write("\n".join(sorted(list(set(mkdir)))) + "\n" + "\n".join(sorted(copy)))
 
 

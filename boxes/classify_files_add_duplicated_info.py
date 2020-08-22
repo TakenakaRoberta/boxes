@@ -4,13 +4,11 @@ import argparse
 from datetime import datetime
 import logging
 
-from PIL import Image
-
 from utils.files import FileInfo
 import classified_files_csv
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
 
 def group_by_content_similarity(rows):
@@ -24,10 +22,10 @@ def group_by_content_similarity(rows):
 
 def identify_first(group):
     colums = ("first_time", 
-                  "birth_date",
-                  "c_date",
-                  "recent_access_date",
-                  "modification_date",
+                  "birth_time",
+                  "c_time",
+                  "recent_access_time",
+                  "modification_time",
                   )
     _sorted = []
     for i, item in enumerate(group):
@@ -43,7 +41,12 @@ def identify_first(group):
              
 
 def mark_duplicated(groups):
+    total = len(groups)
+    i = 0
     for k, items in groups.items():
+        i += 1
+        if i % 100 == 0:
+          logging.info("Marked %i/%i", i, total)
         if len(items) == 1:
             items[0]['duplicated'] = 'unique'
             continue
@@ -53,17 +56,24 @@ def mark_duplicated(groups):
 def main():
     parser = argparse.ArgumentParser(
       'Lê o arquivo .csv que contém os dados dos arquivos classificados '
-      '(gerado pelo classify.py). '
+      '(gerado pelo classify_files.py). '
       'Identifica os arquivos iguais em uma nova coluna e '
       'gera uma nova planilha: *.duplicated.csv')
     parser.add_argument("csvfile", help="csv file")
     args = parser.parse_args()
+
+    logging.info("-"*80)
+    logging.info("Add duplicated info")
+
+    source_csv = args.csvfile
     new_source_csv = source_csv.replace(".csv", ".duplicated.csv")
-    rows = classified_files_csv.read(source_csv)
+    rows = list(classified_files_csv.read(source_csv))
     groups = group_by_content_similarity(rows)
     
     mark_duplicated(groups)
     classified_files_csv.mark_duplicated(new_source_csv, rows)
+    logging.info("-end-")
+
 
 if __name__ == '__main__':
     main()

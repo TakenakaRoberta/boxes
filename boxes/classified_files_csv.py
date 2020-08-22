@@ -7,14 +7,18 @@ HEADER = ['type', 'hash', 'size', "first_time",
                   "c_date",
                   "recent_access_date",
                   "modification_date",
+                  "birth_time",
+                  "c_time",
+                  "recent_access_time",
+                  "modification_time",
                   "name", "file_path",
                   "labels", "new_filename", "new_dirname",
                   "main_label",
+                  "duplicated",
                   ]
 
 
 def read(source_csv):
-    items = {}
     with open(source_csv, 'r', newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for data in reader:
@@ -22,10 +26,8 @@ def read(source_csv):
 
 
 def mark_duplicated(classified_files_csv_path, rows):
-    classified_files_csv.HEADER.append("duplicated")
-
-    with open(classified_files_csv_path, 'w', newline='') as csv:
-        classified_files_writer = csv.DictWriter(csv, fieldnames=classified_files_csv.HEADER)
+    with open(classified_files_csv_path, 'w', newline='') as csvf:
+        classified_files_writer = csv.DictWriter(csvf, fieldnames=HEADER)
         classified_files_writer.writeheader()
         for row in rows:
-            classified_files_writer.writerow(e)
+            classified_files_writer.writerow(row)
